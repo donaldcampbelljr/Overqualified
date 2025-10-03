@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5000:5000"
+    # environment:
+    #   # Add your Gemini API key here (optional - app will use cached resumes if not provided)
+    #   GEMINI_API_KEY: "your_gemini_api_key_here"
+    volumes:
+      - ./backend:/app
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend  
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+
+networks:
+  app-network:
+    driver: bridge
