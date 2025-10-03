@@ -1,5 +1,7 @@
-# Overqualified 🎭
-An absurd resume generator that creates overqualified fictional resumes using AI
+# 🎩 Overqualified 🧐
+An absurd resume generator that creates overqualified fictional resumes using AI.
+
+![Overqualified Example](img/overqualified_example.png)
 
 ## 🚀 Features
 
@@ -11,7 +13,6 @@ An absurd resume generator that creates overqualified fictional resumes using AI
 - **Frontend**: React 18, Tailwind CSS
 - **Backend**: Python Flask, Google Gemini API
 - **Infrastructure**: Docker, Docker Compose
-- **Styling**: Tailwind CSS (loaded via CDN)
 
 ## 📦 Quick Start
 
