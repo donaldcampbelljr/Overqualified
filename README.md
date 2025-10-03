@@ -26,10 +26,23 @@ cd Overqualified
 ```
 
 ### 2. Set Up Environment (Optional)
-If you want AI-generated resumes, edit `docker-compose.yml` and uncomment the GEMINI_API_KEY line:
-```yaml
-environment:
-  GEMINI_API_KEY: "your_actual_api_key_here"
+If you want AI-generated resumes, you can provide your Gemini API key in several ways:
+
+**Option A: Using .env file (Recommended)**
+```bash
+# Copy the template and add your key
+cp .env.template .env
+# Edit .env and add your actual API key
+```
+
+**Option B: Export environment variable**
+```bash
+export GEMINI_API_KEY="your_actual_api_key_here"
+```
+
+**Option C: Inline with docker-compose**
+```bash
+GEMINI_API_KEY="your_key" docker-compose up --build
 ```
 
 **Note**: If you don't provide an API key, the app will automatically serve cached fictional resumes instead!
