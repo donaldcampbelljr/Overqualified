@@ -196,49 +196,73 @@ def generate_resume_from_gemini():
     
     # Exponential backoff for API robustness
     max_retries = 3
-    delay = 1
+    delay = 2
     
     for attempt in range(max_retries):
         try:
             # Append the API key to the URL
             full_api_url = f"{API_URL}?key={API_KEY}"
             
+            print(f"Making API request attempt {attempt + 1}/{max_retries}")
+            
             # Use 'requests' to make the API call
-            response = requests.post(full_api_url, headers=headers, data=json.dumps(payload), timeout=30)
-            response.raise_for_status() # Raises an HTTPError for bad responses (4xx or 5xx)
+            response = requests.post(full_api_url, headers=headers, data=json.dumps(payload), timeout=60)  # Increased timeout
+            
+            print(f"API response status: {response.status_code}")
+            
+            if response.status_code != 200:
+                print(f"API error response: {response.text}")
+                response.raise_for_status()
             
             result = response.json()
+            print("API response received successfully")
 
             # Check for content and parse the structured JSON string
             if (result.get('candidates') and 
+                len(result['candidates']) > 0 and
                 result['candidates'][0].get('content') and 
-                result['candidates'][0]['content'].get('parts')):
+                result['candidates'][0]['content'].get('parts') and
+                len(result['candidates'][0]['content']['parts']) > 0):
                 
                 json_string = result['candidates'][0]['content']['parts'][0]['text']
+                print(f"Received JSON response: {json_string[:100]}...")
+                
                 # The response is a JSON string, so we must parse it
                 resume_data = json.loads(json_string)
-                return resume_data
-            
-            return {"error": "API returned no valid content structure."}, 500
+                print("Successfully parsed JSON response")
+                return resume_data, 200
+            else:
+                print(f"API returned unexpected structure: {result}")
+                return {"error": "API returned no valid content structure."}, 500
 
-        except requests.exceptions.RequestException as e:
-            print(f"Attempt {attempt + 1} failed with error: {e}")
+        except requests.exceptions.Timeout:
+            print(f"Attempt {attempt + 1} timed out")
             if attempt < max_retries - 1:
                 time.sleep(delay)
-                delay *= 2 # Exponential backoff
+                delay *= 2
             else:
-                return {"error": "Failed to connect to the LLM API after multiple retries."}, 500
-        except json.JSONDecodeError:
-            # Handle cases where the model response is not valid JSON
+                return {"error": "API request timed out after multiple retries."}, 500
+        except requests.exceptions.RequestException as e:
+            print(f"Attempt {attempt + 1} failed with network error: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(delay)
+                delay *= 2
+            else:
+                return {"error": f"Failed to connect to the LLM API after multiple retries: {str(e)}"}, 500
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {e}")
             return {"error": "LLM response could not be parsed as valid JSON."}, 500
         except Exception as e:
-            # Catch any other unexpected error
+            print(f"Unexpected error: {e}")
             return {"error": f"An unexpected error occurred: {e}"}, 500
+    
+    return {"error": "Max retries exceeded"}, 500
 
 
 @app.route('/api/resume', methods=['GET'])
 def get_resume():
     """Endpoint to trigger the dynamic resume generation or serve cached resume."""
+    print("=" * 50)
     print("Request received for resume...")
     
     # Check if API Key is set
@@ -248,20 +272,29 @@ def get_resume():
         cached_resume = random.choice(CACHED_RESUMES)
         return jsonify(cached_resume)
 
+    print(f"API key present: {len(API_KEY)} characters")
+    
     # Try to generate from API, fall back to cached if it fails
     try:
         resume_data, status_code = generate_resume_from_gemini()
         
         if status_code != 200:
-            print("API generation failed, serving cached resume...")
+            print(f"API generation failed with status {status_code}, serving cached resume...")
+            print(f"Error details: {resume_data}")
             import random
             cached_resume = random.choice(CACHED_RESUMES)
             return jsonify(cached_resume)
         
-        print("Successfully generated and serving resume data.")
+        print("Successfully generated and serving AI resume data.")
         return jsonify(resume_data)
+    except ValueError as e:
+        # This catches the case where generate_resume_from_gemini doesn't return a tuple
+        print(f"Unexpected return format from API function: {e}. Serving cached resume...")
+        import random
+        cached_resume = random.choice(CACHED_RESUMES)
+        return jsonify(cached_resume)
     except Exception as e:
-        print(f"Error generating resume from API: {e}. Serving cached resume...")
+        print(f"Unexpected error generating resume from API: {e}. Serving cached resume...")
         import random
         cached_resume = random.choice(CACHED_RESUMES)
         return jsonify(cached_resume)
