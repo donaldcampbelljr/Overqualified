@@ -6,7 +6,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.backend
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       # Pull API key from host environment variables (optional - app will use cached resumes if not provided)
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -29,7 +29,7 @@ services:
     networks:
       - app-network
     environment:
-      - REACT_APP_API_URL=http://localhost:5000
+      - REACT_APP_API_URL=http://localhost:5001
 
 networks:
   app-network:
